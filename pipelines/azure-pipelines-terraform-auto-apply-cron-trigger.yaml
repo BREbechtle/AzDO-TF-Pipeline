@@ -5,24 +5,28 @@
 # Together with the Terraform configuration, this pipeline is used to rotate client secrets on the Azure AD applications used for the Azure DevOps service connections on a regular basis.
 # WARNING: If other changes are made when the pipeline runs, the pipeline will apply those as well.
 
-trigger: none
-
-schedules:
-- cron: '0 1 * * *' # Time is UTC
-  displayName: Nightly run
+trigger:
   branches:
     include:
-    - main
-  always: true # Run even when no changes are made in the repository
+      - main
+
+#schedules:
+#- cron: '0 1 * * *' # Time is UTC
+#  displayName: Nightly run
+#  branches:
+#    include:
+#    - main
+#  always: true # Run even when no changes are made in the repository
 
 variables:
-  service_connection_name: "foo-bar" # Name of the service connection which this pipeline should run as
-  tf_version: "1.5.5" # Version of terraform to use. Use 'latest' to always use latest version available.
-  tf_state_rg_name: "rg-example-prod" # Name of the resource group to use for the Terraform state file.
-  tf_state_sa_name: "storageaccountname" # Name of the storage account to use for the Terraform state file.
-  tf_state_container_name: "tfstate" # Name of the storage container use for the Terraform state file.
-  tf_environment: "prod" # Enviroment name, can be used for the state file name among others.
-  working_directory: "$(System.DefaultWorkingDirectory)" # If Terraform files are stored in a subdirectory, define the subdirectory here, for example "$(System.DefaultWorkingDirectory)/infrastructure"
+- group: tf-pipeline-vars
+#  service_connection_name: "foo-bar" # Name of the service connection which this pipeline should run as
+#  tf_version: "1.5.5" # Version of terraform to use. Use 'latest' to always use latest version available.
+#  tf_state_rg_name: "rg-example-prod" # Name of the resource group to use for the Terraform state file.
+#  tf_state_sa_name: "storageaccountname" # Name of the storage account to use for the Terraform state file.
+#  tf_state_container_name: "tfstate" # Name of the storage container use for the Terraform state file.
+#  tf_environment: "prod" # Enviroment name, can be used for the state file name among others.
+#  working_directory: "$(System.DefaultWorkingDirectory)" # If Terraform files are stored in a subdirectory, define the subdirectory here, for example "$(System.DefaultWorkingDirectory)/infrastructure"
 
 pool:
   vmImage: "ubuntu-latest"
