@@ -3,43 +3,84 @@ trigger:
     include:
       - main
 
-stages:
-  - validate
-  - plan
-  - apply
+pool:
+  vmImage: "ubuntu-latest"
 
-default:
-  image:
-    name: hashicorp/terraform:latest
-    entrypoint:
-      - /usr/bin/env
-      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  before_script:
-    - terraform init -reconfigure
-  cache:
-    key: terraform
-    paths:
-      - .terraform
+variables:
+  - group: "tf-pipeline-vars"
+  #- name: "SRC_DIRECTORY_PATH"
+  #  value: "$(Pipeline.Workspace)/s/src/"
+  - name: "major-version"
+    value: 0
+  - name: "minor-version"
+    value: 0
 
-terraform_validate:
-  stage: validate
-  script:
-    - terraform validate
-
-terraform_plan:
-  stage: plan
-  script:
-    - terraform plan -out plan
-  artifacts:
-    paths:
-      - plan
-
-terraform_apply:
-  stage: apply
-  script:
-    - terraform apply --auto-approve plan
-  when: manual
-  allow_failure: false
-  only:
-    refs:
-      - main
+name: $(major-version).$(minor-version)$(Rev:.r)
+  stages:
+  - stage: Deployment
+    displayName: Deployment
+    jobs:
+      # - job: waitForValidation
+      #   displayName: Manual Code Validation
+      #   pool: server
+      #   timeoutInMinutes: 180
+      #   steps:
+      #     - task: ManualValidation@0
+      #       displayName: Wait for Validation
+      #       timeoutInMinutes: 120 # Wait for validation in minutes (2 hours)
+      #       inputs:
+      #         notifyUsers: "alessio.maiorano@bechtle.com"
+      - job: tfDeployment
+        displayName: Terraform - Deployment
+        #   dependsOn: waitForValidation
+        steps:
+          - checkout: self
+          - bash: |
+              wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+              echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+              sudo apt update && sudo apt install terraform
+            displayName: Terraform - Installation
+          - bash: |
+              echo "List current directories in $(working_directory):"
+              ls -l --time-style=iso --format=horizontal
+              echo "Initialize Terraform incl. backend config"
+              terraform init \
+                -backend-config="storage_account_name=$TF_STATE_BLOB_ACCOUNT_NAME" \
+                -backend-config="container_name=$TF_STATE_BLOB_CONTAINER_NAME" \
+                -backend-config="key=$TF_STATE_BLOB_FILE" \
+#                -backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"
+            displayName: Terraform - Initialize
+            workingDirectory: $(working_directory)
+            env:
+              TF_STATE_BLOB_ACCOUNT_NAME: $(tf_state_sa_name)
+              TF_STATE_BLOB_CONTAINER_NAME: $(tf_sate_container_name)
+              TF_STATE_BLOB_FILE: "$(tf_environment).terraform.tfstate"
+             # TF_STATE_BLOB_SAS_TOKEN: $(kv-tf-state-sas-token)
+          - bash: |
+              echo "List current directories in $(working_directory):"
+              ls -l --time-style=iso --format=horizontal
+              terraform validate
+            displayName: Terraform - Validate
+            workingDirectory: $(working_directory)
+          - bash: |
+              echo "List current directories in $(working_directory):"
+              ls -l --time-style=iso --format=horizontal
+              terraform plan -out deployment.tfplan
+            displayName: Terraform - Plan
+            workingDirectory: $(working_directory)
+            env:
+              ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+              ARM_CLIENT_ID: $(AZURE_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+              ARM_TENANT_ID: $(AZURE_TENANT_ID)
+          - bash: |
+              echo "List current directories in $(working_directory):"
+              ls -l --time-style=iso --format=horizontal
+              terraform apply -auto-approve deployment.tfplan
+            displayName: Terraform - Apply
+            workingDirectory: $(working_directory)
+            env:
+              ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+              ARM_CLIENT_ID: $(AZURE_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+              ARM_TENANT_ID: $(AZURE_TENANT_ID)
