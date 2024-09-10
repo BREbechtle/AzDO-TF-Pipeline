@@ -16,7 +16,7 @@ variables:
     value: 0
 
 name: $(major-version).$(minor-version)$(Rev:.r)
-  stages:
+stages:
   - stage: Deployment
     displayName: Deployment
     jobs:
@@ -29,7 +29,7 @@ name: $(major-version).$(minor-version)$(Rev:.r)
       #       displayName: Wait for Validation
       #       timeoutInMinutes: 120 # Wait for validation in minutes (2 hours)
       #       inputs:
-      #         notifyUsers: "alessio.maiorano@bechtle.com"
+      #         notifyUsers: "user.name@example.com"
       - job: tfDeployment
         displayName: Terraform - Deployment
         #   dependsOn: waitForValidation
@@ -45,17 +45,17 @@ name: $(major-version).$(minor-version)$(Rev:.r)
               ls -l --time-style=iso --format=horizontal
               echo "Initialize Terraform incl. backend config"
               terraform init \
-                -backend-config="storage_account_name=$TF_STATE_BLOB_ACCOUNT_NAME" \
-                -backend-config="container_name=$TF_STATE_BLOB_CONTAINER_NAME" \
-                -backend-config="key=$TF_STATE_BLOB_FILE" \
-#                -backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"
+                -backend-config="storage_account_name=$(tf_state_sa_name)" \
+                -backend-config="container_name=$(tf_state_container_name)" \
+                -backend-config="key=$(tf_environment).terraform.tfstate" \
+            #                -backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"
             displayName: Terraform - Initialize
             workingDirectory: $(working_directory)
             env:
               TF_STATE_BLOB_ACCOUNT_NAME: $(tf_state_sa_name)
               TF_STATE_BLOB_CONTAINER_NAME: $(tf_sate_container_name)
               TF_STATE_BLOB_FILE: "$(tf_environment).terraform.tfstate"
-             # TF_STATE_BLOB_SAS_TOKEN: $(kv-tf-state-sas-token)
+              # TF_STATE_BLOB_SAS_TOKEN: $(kv-tf-state-sas-token)
           - bash: |
               echo "List current directories in $(working_directory):"
               ls -l --time-style=iso --format=horizontal
@@ -69,10 +69,10 @@ name: $(major-version).$(minor-version)$(Rev:.r)
             displayName: Terraform - Plan
             workingDirectory: $(working_directory)
             env:
-              ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-              ARM_CLIENT_ID: $(AZURE_CLIENT_ID)
-              ARM_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-              ARM_TENANT_ID: $(AZURE_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(azure_subscription_id)
+              ARM_CLIENT_ID: $(azure_client_id)
+              ARM_CLIENT_SECRET: $(azure_client_secret)
+              ARM_TENANT_ID: $(azure_tenant_id)
           - bash: |
               echo "List current directories in $(working_directory):"
               ls -l --time-style=iso --format=horizontal
@@ -80,7 +80,7 @@ name: $(major-version).$(minor-version)$(Rev:.r)
             displayName: Terraform - Apply
             workingDirectory: $(working_directory)
             env:
-              ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-              ARM_CLIENT_ID: $(AZURE_CLIENT_ID)
-              ARM_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-              ARM_TENANT_ID: $(AZURE_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(azure_subscription_id)
+              ARM_CLIENT_ID: $(azure_client_id)
+              ARM_CLIENT_SECRET: $(azure_client_secret)
+              ARM_TENANT_ID: $(azure_tenant_id)
