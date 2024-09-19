@@ -7,7 +7,7 @@ variables:
 - group: tf-pipeline-vars
 
 pool:
-  vmImage: "ubuntu-20.04"
+  vmImage: "ubuntu-22.04"
 
 stages:
 - stage: Plan
@@ -47,7 +47,7 @@ stages:
         BACKEND_RESOURCE_GROUP_NAME: $(BACKEND_RESOURCE_GROUP_NAME)
         BACKEND_STORAGE_ACCOUNT_NAME: $(BACKEND_STORAGE_ACCOUNT_NAME)
         BACKEND_STORAGE_CONTAINER_NAME: $(BACKEND_STORAGE_CONTAINER_NAME)
-        #TF_BACKEND_KEY: $(ApplicationName)-$(EnvironmentName)
+        TF_BACKEND_KEY: $(ApplicationName)-$(EnvironmentName)
         TF_VAR_application_name: $(ApplicationName)
     - task: PublishPipelineArtifact@1
       inputs: 
