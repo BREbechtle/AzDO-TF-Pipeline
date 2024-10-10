@@ -27,7 +27,7 @@ stages:
             inputs:
               filePath: pipelines/scripts/terraform-with-backend.sh
               workingDirectory: $(WorkingDirectory)
-              arguments: destroy -auto-approve
+              arguments: destroy -auto-approve -var-file="env-$(EnvironmentName).tfvars"
             env: 
               ARM_CLIENT_ID: $(ARM_CLIENT_ID)
               ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
